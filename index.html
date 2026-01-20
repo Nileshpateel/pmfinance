@@ -146,11 +146,27 @@ fetch(SHEET_URL)
     let borrowers = {};
 
     data.forEach(row=>{
+      const name = row["Borrower Name"] || "Unknown";
+
+      if(!borrowers[name]){
+        borrowers[name] = {
+          lent: 0,
+          collected: 0
+        };
+      }
+
+      const loanAmt = Number(row["Loan Amount"] || 0);
+      const collectedAmt = Number(row["Collected Amount"] || 0);
+
+      // Track loan amount (max, entered once)
+      if(loanAmt > borrowers[name].lent){
+        borrowers[name].lent = loanAmt;
+      }
+
+      // Track today's collection
       if(row["Date"] === today){
-        const amt = Number(row["Collected Amount"] || 0);
-        total += amt;
-        const name = row["Borrower Name"] || "Unknown";
-        borrowers[name] = (borrowers[name] || 0) + amt;
+        borrowers[name].collected += collectedAmt;
+        total += collectedAmt;
       }
     });
 
@@ -162,10 +178,22 @@ fetch(SHEET_URL)
     if(Object.keys(borrowers).length === 0){
       list.innerHTML = "<div class='small'>No collections today</div>";
     }else{
-      Object.entries(borrowers).forEach(([name,amt])=>{
+      Object.entries(borrowers).forEach(([name,info])=>{
+        const balance = info.lent - info.collected;
+
         const div = document.createElement("div");
         div.className = "list-item";
-        div.innerHTML = `<span>${name}</span><strong>₹${amt.toFixed(2)}</strong>`;
+        div.innerHTML = `
+          <span>
+            <strong>${name}</strong><br>
+            <span class="small">
+              Lent: ₹${info.lent.toFixed(2)} |
+              Collected: ₹${info.collected.toFixed(2)} |
+              Balance: ₹${balance.toFixed(2)}
+            </span>
+          </span>
+          <strong>₹${info.collected.toFixed(2)}</strong>
+        `;
         list.appendChild(div);
       });
     }
