@@ -4,33 +4,64 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Add Collection – Jyotiba Finance Group</title>
+
   <style>
+    /* ---------- Base ---------- */
     body {
       margin: 0;
       font-family: system-ui, Arial, sans-serif;
-      background: #f4f6f8;
+      background: linear-gradient(to bottom, #f4f6f8, #eef2f7);
+      color: #222;
     }
+
+    /* ---------- Header ---------- */
     header {
-      background: #1565c0;
+      background: linear-gradient(135deg, #1565c0, #0d47a1);
       color: white;
-      padding: 14px;
+      padding: 16px;
       text-align: center;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
+
+    header small {
+      display: block;
+      font-size: 13px;
+      font-weight: 400;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    /* ---------- Form Container ---------- */
+    .form-wrapper {
+      padding: 12px;
+    }
+
     iframe {
       width: 100%;
-      height: calc(100vh - 60px);
+      height: calc(100vh - 110px);
       border: none;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
     }
   </style>
 </head>
+
 <body>
 
-<header>Jyotiba Finance Group</header>
+<header>
+  Jyotiba Finance Group
+  <small>Add Daily Collection</small>
+</header>
 
-<!-- Replace the src URL with your Google Form embed link -->
-<iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfdLWeasjSBkMRk2R_Y48AiAl2LL35lcCegb9kj0fPBV3YxeQ/viewform?embedded=true" width="640" height="1238" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+<div class="form-wrapper">
+  <iframe 
+    src="https://docs.google.com/forms/d/e/1FAIpQLSfdLWeasjSBkMRk2R_Y48AiAl2LL35lcCegb9kj0fPBV3YxeQ/viewform?embedded=true">
+    Loading…
+  </iframe>
+</div>
 
 </body>
 </html>
