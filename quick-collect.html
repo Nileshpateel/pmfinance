@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Collect – Jyotiba Finance Group</title>
+
+<style>
+body{
+  margin:0;
+  font-family: system-ui, Arial, sans-serif;
+  background:#f4f6f8;
+}
+header{
+  background:#1565c0;
+  color:#fff;
+  padding:14px;
+  text-align:center;
+  font-size:20px;
+  font-weight:700;
+}
+.container{
+  padding:14px;
+  max-width:720px;
+  margin:auto;
+}
+.card{
+  background:#fff;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+}
+.borrower-btn{
+  width:100%;
+  padding:14px;
+  margin-bottom:10px;
+  font-size:16px;
+  font-weight:600;
+  border-radius:12px;
+  border:none;
+  background:#1565c0;
+  color:#fff;
+  cursor:pointer;
+}
+.borrower-btn:active{
+  transform:scale(0.97);
+}
+.small{
+  color:#666;
+  font-size:14px;
+  margin-bottom:10px;
+}
+.back{
+  display:inline-block;
+  margin-top:10px;
+  color:#1565c0;
+  text-decoration:none;
+  font-weight:600;
+}
+</style>
+</head>
+
+<body>
+
+<header>⚡ Quick Daily Collection</header>
+
+<div class="container">
+
+  <div class="card">
+    <div class="small">
+      Tap borrower name to add today’s collection
+    </div>
+    <div id="borrowerList">Loading borrowers…</div>
+  </div>
+
+  <a href="index.html" class="back">⬅ Back to Dashboard</a>
+
+</div>
+
+<script>
+const SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHMVetLYoyRzDg57nOm2drb4pSyw33hqNsOTI9F92rD7bnk2p7sUypioSdhSNH_zcGO75kmsBKM5VI/pub?gid=1158021320&single=true&output=csv";
+
+const FORM_BASE_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSfdLWeasjSBkMRk2R_Y48AiAl2LL35lcCegb9kj0fPBV3YxeQ/viewform";
+
+const BORROWER_ENTRY_ID = "entry.1196559782";
+
+function parseCSV(text){
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",");
+  return lines.slice(1).map(row=>{
+    const values = row.split(",");
+    let obj = {};
+    headers.forEach((h,i)=> obj[h.trim()] = values[i]?.trim());
+    return obj;
+  });
+}
+
+fetch(SHEET_URL)
+  .then(res => res.text())
+  .then(csv => {
+    const data = parseCSV(csv);
+    const borrowers = new Set();
+
+    data.forEach(row=>{
+      const status = row["Status"] || "ACTIVE";
+      if(status === "INACTIVE") return;
+
+      const name = row["Borrower Name"];
+      if(name) borrowers.add(name);
+    });
+
+    const list = document.getElementById("borrowerList");
+    list.innerHTML = "";
+
+    if(borrowers.size === 0){
+      list.innerHTML =
+        "<div class='small'>No borrowers yet. Add first entry from “Add Collection”.</div>";
+      return;
+    }
+
+    borrowers.forEach(name=>{
+      const btn = document.createElement("button");
+      btn.className = "borrower-btn";
+      btn.textContent = name;
+
+      btn.onclick = () => {
+        const url =
+          FORM_BASE_URL + "?" +
+          BORROWER_ENTRY_ID + "=" +
+          encodeURIComponent(name);
+
+        window.location.href = url;
+      };
+
+      list.appendChild(btn);
+    });
+  });
+</script>
+
+</body>
+</html>

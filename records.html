@@ -54,21 +54,20 @@ input{
 .list-item{
   display:flex;
   justify-content:space-between;
-  padding:10px 0;
+  padding:12px 0;
   border-bottom:1px solid #eee;
 }
 
-/* ---- Overdue styles ---- */
-.overdue{
+/* ---- Daily Status Colors ---- */
+.not-paid{
   background:#fff4f4;
   border-left:5px solid #d32f2f;
   padding-left:8px;
 }
-.balance{
-  font-weight:700;
-}
-.overdue .balance{
-  color:#d32f2f;
+.paid{
+  background:#f1f8f4;
+  border-left:5px solid #2e7d32;
+  padding-left:8px;
 }
 
 /* ---- Badges ---- */
@@ -79,11 +78,11 @@ input{
   border-radius:10px;
   margin-left:6px;
 }
-.badge-overdue{
+.badge-red{
   background:#d32f2f;
   color:#fff;
 }
-.badge-clear{
+.badge-green{
   background:#2e7d32;
   color:#fff;
 }
@@ -124,13 +123,13 @@ input{
 
   <!-- Total -->
   <div class="card">
-    <div class="small">Total Collected (Filtered)</div>
+    <div class="small">Cash Received (Filtered)</div>
     <div id="totalAmount" class="total">₹0</div>
   </div>
 
   <!-- Records -->
   <div class="card">
-    <div class="small">Borrower Summary</div>
+    <div class="small">Daily Collection Status</div>
     <div id="recordsList"></div>
   </div>
 
@@ -138,7 +137,10 @@ input{
 
 <script>
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHMVetLYoyRzDg57nOm2drb4pSyw33hqNsOTI9F92rD7bnk2p7sUypioSdhSNH_zcGO75kmsBKM5VI/pub?gid=1158021320&single=true&output=csv";
-let allData = [];
+
+function todayISO(){
+  return new Date().toISOString().split("T")[0];
+}
 
 function parseCSV(text){
   const lines = text.trim().split("\n");
@@ -151,56 +153,65 @@ function parseCSV(text){
   });
 }
 
+let allData = [];
+
 function render(data){
   const list = document.getElementById("recordsList");
   list.innerHTML = "";
   let totalCollected = 0;
-
-  if(data.length === 0){
-    list.innerHTML = "<div class='small'>No records found</div>";
-    document.getElementById("totalAmount").textContent = "₹0";
-    return;
-  }
+  const today = todayISO();
 
   const summary = {};
 
   data.forEach(row=>{
-    const name = row["Borrower Name"] || "Unknown";
-    const loanAmt = Number(row["Loan Amount"] || 0);
-    const collectedAmt = Number(row["Collected Amount"] || 0);
+    const status = row["Status"] || "ACTIVE";
+    if(status === "INACTIVE") return;
+
+    const name = row["Borrower Name"];
+    if(!name) return;
+
+    const loan = Number(row["Loan Amount"] || 0);
+    const collected = Number(row["Collected Amount"] || 0);
+    const date = row["Date"];
 
     if(!summary[name]){
-      summary[name] = { lent: 0, collected: 0 };
+      summary[name] = {
+        lent: 0,
+        collected: 0,
+        paidToday: false
+      };
     }
 
-    if(loanAmt > summary[name].lent){
-      summary[name].lent = loanAmt;
+    if(loan > summary[name].lent){
+      summary[name].lent = loan;
     }
 
-    summary[name].collected += collectedAmt;
-    totalCollected += collectedAmt;
+    summary[name].collected += collected;
+    totalCollected += collected;
+
+    if(date === today && collected > 0){
+      summary[name].paidToday = true;
+    }
   });
 
   Object.entries(summary).forEach(([name,info])=>{
     const balance = info.lent - info.collected;
-    const isOverdue = balance > 0;
+    const paidToday = info.paidToday;
 
     const div = document.createElement("div");
-    div.className = "list-item" + (isOverdue ? " overdue" : "");
+    div.className = "list-item " + (paidToday ? "paid" : "not-paid");
 
     div.innerHTML = `
       <span>
         <strong>${name}</strong>
         ${
-          isOverdue
-            ? '<span class="badge badge-overdue">OVERDUE</span>'
-            : '<span class="badge badge-clear">CLEARED</span>'
+          paidToday
+            ? '<span class="badge badge-green">PAID TODAY</span>'
+            : '<span class="badge badge-red">NOT PAID TODAY</span>'
         }
         <br>
         <span class="small">
-          Lent: ₹${info.lent.toFixed(2)} |
-          Collected: ₹${info.collected.toFixed(2)} |
-          Balance: <span class="balance">₹${balance.toFixed(2)}</span>
+          Outstanding: ₹${balance.toFixed(2)}
         </span>
       </span>
       <strong>₹${info.collected.toFixed(2)}</strong>
@@ -236,31 +247,40 @@ function resetFilters(){
 }
 
 function exportCSV(){
-  let csv = "Borrower,Loan Amount,Total Collected,Outstanding\n";
+  let csv = "Borrower,Outstanding,Paid Today\n";
+  const today = todayISO();
   const summary = {};
 
   allData.forEach(r=>{
-    const name = r["Borrower Name"] || "Unknown";
+    const name = r["Borrower Name"];
+    if(!name) return;
+
     const loan = Number(r["Loan Amount"] || 0);
     const collected = Number(r["Collected Amount"] || 0);
+    const date = r["Date"];
 
     if(!summary[name]){
-      summary[name] = { lent: 0, collected: 0 };
+      summary[name] = { lent: 0, collected: 0, paidToday: false };
     }
+
     if(loan > summary[name].lent){
       summary[name].lent = loan;
     }
     summary[name].collected += collected;
+
+    if(date === today && collected > 0){
+      summary[name].paidToday = true;
+    }
   });
 
   Object.entries(summary).forEach(([name,info])=>{
-    csv += `${name},${info.lent},${info.collected},${info.lent - info.collected}\n`;
+    csv += `${name},${info.lent - info.collected},${info.paidToday ? "YES" : "NO"}\n`;
   });
 
   const blob = new Blob([csv], {type:"text/csv"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "jyotiba_finance_summary.csv";
+  a.download = "jyotiba_daily_status.csv";
   a.click();
 }
 
